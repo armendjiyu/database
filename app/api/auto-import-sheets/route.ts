@@ -16,12 +16,14 @@ const PRODUCTS = [
   {
     name: "Toner Pads 2 Pack",
     tableName: "toner_2pack_daily",
-    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8V0d5kbxQQjTeR4gQsYE7PzfZUMLXlRxdsKKwDzYG0CNZgoQh_tySjKOGIfjU60LpqG7IqzeZEAgl/pub?output=csv&gid=1956528015"
+    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8V0d5kbxQQjTeR4gQsYE7PzfZUMLXlRxdsKKwDzYG0CNZgoQh_tySjKOGIfjU60LpqG7IqzeZEAgl/pub?output=csv&gid=1956528015",
+    filterPack: "2 Pack"
   },
   {
     name: "Toner Pads 3 Pack",
     tableName: "toner_3pack_daily",
-    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8V0d5kbxQQjTeR4gQsYE7PzfZUMLXlRxdsKKwDzYG0CNZgoQh_tySjKOGIfjU60LpqG7IqzeZEAgl/pub?output=csv&gid=1204450464"
+    csvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT8V0d5kbxQQjTeR4gQsYE7PzfZUMLXlRxdsKKwDzYG0CNZgoQh_tySjKOGIfjU60LpqG7IqzeZEAgl/pub?output=csv&gid=1204450464",
+    filterPack: "3 Pack"
   },
   {
     name: "NAD+ Cream",
@@ -74,28 +76,54 @@ function parseCSV(csvText: string, filterPack?: string) {
   const lines = csvText.split("\n").filter(line => line.trim())
   const dates: Date[] = []
   const metrics: Array<{ name: string; values: number[] }> = []
-  
+
   console.log(`[v0] Parsing CSV with ${lines.length} lines`)
-  
+
+  const normalizeCell = (value: string) => value.trim().toLowerCase()
+  const categoryNames = new Set(["items sold", "gmv"])
+  const generalMetrics = new Set([
+    "orders",
+    "product impressions",
+    "page views",
+    "avg visitors",
+    "$ per visitor",
+    "$ per customer",
+    "avg. customers",
+    "subscribers",
+    "conv. rate",
+    "click-through rate",
+    "aov",
+    "units per order"
+  ])
+
   // Find header row with dates
   let headerRowIndex = -1
+  let dateColumns: { index: number; date: Date }[] = []
   for (let i = 0; i < Math.min(15, lines.length); i++) {
     const cells = parseCSVLine(lines[i])
     console.log(`[v0] Row ${i}: ${cells.length} cells, first 3: [${cells.slice(0, 3).join(", ")}]`)
-    
-    // Look for a row with many cells where cell 1 or later contains a date pattern
+
     if (cells.length > 10) {
-      for (let j = 1; j < Math.min(5, cells.length); j++) {
-        if (cells[j]?.includes("-") && cells[j].match(/\d{1,2}-[A-Za-z]{3}/)) {
-          headerRowIndex = i
-          console.log(`[v0] Found date pattern at row ${i}, column ${j}: ${cells[j]}`)
-          break
+      const rowDates: { index: number; date: Date }[] = []
+      for (let j = 0; j < cells.length; j++) {
+        const cell = cells[j]?.trim()
+        if (cell && cell.includes("-") && cell.match(/\d{1,2}-[A-Za-z]{3}/)) {
+          try {
+            rowDates.push({ index: j, date: parseDate(cell) })
+          } catch (e) {
+            console.error("[v0] Failed to parse date:", cell)
+          }
         }
       }
-      if (headerRowIndex !== -1) break
+      if (rowDates.length > 5) {
+        headerRowIndex = i
+        dateColumns = rowDates
+        console.log(`[v0] Found header row at index: ${headerRowIndex}`)
+        break
+      }
     }
   }
-  
+
   if (headerRowIndex === -1) {
     console.log("[v0] Could not find header row with dates")
     console.log("[v0] First 5 lines of CSV:")
@@ -104,114 +132,99 @@ function parseCSV(csvText: string, filterPack?: string) {
     })
     return { dates, metrics }
   }
-  
-  console.log(`[v0] Found header row at index: ${headerRowIndex}`)
-  
-  // Parse dates from header
-  const headerCells = parseCSVLine(lines[headerRowIndex])
-  for (let i = 1; i < headerCells.length; i++) {
-    const cell = headerCells[i].trim()
-    if (cell && cell.includes("-")) {
-      try {
-        const parsedDate = parseDate(cell)
-        dates.push(parsedDate)
-      } catch (e) {
-        console.error("[v0] Failed to parse date:", cell)
-      }
-    }
-  }
-  
-  console.log(`[v0] Parsed ${dates.length} dates from ${headerCells[1]} to ${headerCells[dates.length]}`)
-  
+
+  dates.push(...dateColumns.map(({ date }) => date))
+  console.log(`[v0] Parsed ${dates.length} dates`)
+
+  const rowHasNumericData = (cells: string[]) =>
+    dateColumns.some(({ index }) => {
+      const value = cells[index]
+      if (!value) return false
+      const cleanValue = value.replace(/[$,%]/g, "").trim()
+      return !Number.isNaN(Number.parseFloat(cleanValue))
+    })
+
+  const extractValues = (cells: string[]) =>
+    dateColumns.map(({ index }) => {
+      const value = cells[index]?.trim().replace(/[",]/g, "") || ""
+      const num = parseFloat(value.replace(/[$%]/g, ""))
+      return Number.isNaN(num) ? 0 : num
+    })
+
   // Parse metrics
   let currentCategory = ""
   const capturedCategories = new Set<string>()
-  
+
   for (let i = headerRowIndex + 1; i < lines.length; i++) {
     const cells = parseCSVLine(lines[i])
     const firstCell = cells[0]?.trim() || ""
     const secondCell = cells[1]?.trim() || ""
-    
+    const firstCellNorm = normalizeCell(firstCell)
+    const secondCellNorm = normalizeCell(secondCell)
+
     console.log(`[v0] Metric row ${i}: firstCell="${firstCell}", secondCell="${secondCell}", cells=${cells.length}`)
-    
-    // Check if this is a category header (in second column)
-    if (secondCell === "Items Sold" || secondCell === "GMV") {
-      currentCategory = secondCell
+
+    if ((firstCellNorm === "seller sku" || secondCellNorm === "seller sku") && !rowHasNumericData(cells)) {
+      continue
+    }
+
+    const rowLabel = secondCell || firstCell
+    const rowLabelNorm = normalizeCell(rowLabel)
+    const isCategoryRow = categoryNames.has(rowLabelNorm)
+
+    if (isCategoryRow && !rowHasNumericData(cells)) {
+      currentCategory = rowLabel
       console.log(`[v0] Found category: ${currentCategory}`)
       continue
     }
-    
-    // Skip header rows
-    if (secondCell === "Seller SKU" || (firstCell === "" && secondCell === "")) continue
-    
-    // Check if this is a pack variant under a category (data is in column 2)
-    if (currentCategory && (secondCell === "1 Pack" || secondCell === "2 Pack" || secondCell === "3 Pack")) {
-      if (filterPack && secondCell !== filterPack) {
-        currentCategory = "" // Reset category if not matching
+
+    const isPackRow =
+      firstCellNorm.includes("pack") ||
+      secondCellNorm.includes("pack") ||
+      (filterPack ? firstCellNorm === filterPack.toLowerCase() || secondCellNorm === filterPack.toLowerCase() : false)
+
+    if (currentCategory) {
+      if (isPackRow) {
+        if (filterPack && firstCellNorm !== filterPack.toLowerCase() && secondCellNorm !== filterPack.toLowerCase()) {
+          continue
+        }
+        if (!capturedCategories.has(currentCategory) && rowHasNumericData(cells)) {
+          const metricName = currentCategory
+          const values = extractValues(cells)
+          metrics.push({ name: metricName, values })
+          capturedCategories.add(metricName)
+          currentCategory = ""
+          console.log(`[v0] Found metric: ${metricName} with ${values.length} values (pack row)`)
+        }
         continue
       }
-      if (capturedCategories.has(currentCategory)) {
-        currentCategory = "" // Reset after capturing
+
+      if (!capturedCategories.has(currentCategory) && rowHasNumericData(cells)) {
+        const metricName = currentCategory
+        const values = extractValues(cells)
+        metrics.push({ name: metricName, values })
+        capturedCategories.add(metricName)
+        currentCategory = ""
+        console.log(`[v0] Found metric: ${metricName} with ${values.length} values (category row)`)
         continue
       }
-      
-      const metricName = currentCategory
-      capturedCategories.add(currentCategory)
-      currentCategory = "" // Reset category after capturing
-      
-      const values: number[] = []
-      for (let j = 2; j < cells.length && (j - 2) < dates.length; j++) {
-        const value = cells[j]?.trim().replace(/[",]/g, "") || ""
-        const num = parseFloat(value.replace(/[$]/g, ""))
-        values.push(isNaN(num) ? 0 : num)
-      }
-      
-      metrics.push({ name: metricName, values })
-      console.log(`[v0] Found metric: ${metricName} with ${values.length} values (from category)`)
+    }
+
+    if (isCategoryRow && rowHasNumericData(cells) && !capturedCategories.has(rowLabel)) {
+      const values = extractValues(cells)
+      metrics.push({ name: rowLabel, values })
+      capturedCategories.add(rowLabel)
+      console.log(`[v0] Found metric: ${rowLabel} with ${values.length} values (direct category row)`)
       continue
     }
-    
-    // If we have a category and the next row is a product name (not a pack), capture it
-    if (currentCategory && secondCell && !secondCell.includes("Pack") && !secondCell.includes("SKU") && 
-        !secondCell.includes("Items Sold") && !secondCell.includes("GMV") && !secondCell.includes("Orders") &&
-        !capturedCategories.has(currentCategory)) {
-      const metricName = currentCategory
-      capturedCategories.add(currentCategory)
-      currentCategory = "" // Reset category after capturing
-      
-      const values: number[] = []
-      for (let j = 2; j < cells.length && (j - 2) < dates.length; j++) {
-        const value = cells[j]?.trim().replace(/[",]/g, "") || ""
-        const num = parseFloat(value.replace(/[$]/g, ""))
-        values.push(isNaN(num) ? 0 : num)
-      }
-      
-      if (values.some(v => v !== 0)) {
-        metrics.push({ name: metricName, values })
-        console.log(`[v0] Found metric: ${metricName} with ${values.length} values (from category - product row)`)
-      }
-      continue
-    }
-    
-    // Regular metric row (metric name in column 2, data starts at column 3)
-    if (secondCell && !secondCell.includes("Pack") && !secondCell.includes("SKU") && 
-        !secondCell.includes("Items Sold") && !secondCell.includes("GMV") && cells.length > 10) {
-      const metricName = secondCell
-      const values: number[] = []
-      
-      for (let j = 2; j < cells.length && (j - 2) < dates.length; j++) {
-        const value = cells[j]?.trim().replace(/[",]/g, "") || ""
-        const num = parseFloat(value.replace(/[$%]/g, ""))
-        values.push(isNaN(num) ? 0 : num)
-      }
-      
-      if (values.some(v => v !== 0)) {
-        metrics.push({ name: metricName, values })
-        console.log(`[v0] Found metric: ${metricName} with ${values.length} values (regular)`)
-      }
+
+    if (generalMetrics.has(rowLabelNorm) && rowHasNumericData(cells)) {
+      const values = extractValues(cells)
+      metrics.push({ name: rowLabel, values })
+      console.log(`[v0] Found metric: ${rowLabel} with ${values.length} values (regular)`)
     }
   }
-  
+
   return { dates, metrics }
 }
 
