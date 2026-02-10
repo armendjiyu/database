@@ -191,6 +191,9 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
   const chartData = useMemo(() => {
     if (selectedMetrics.length === 0) return []
 
+    console.log("[v0] Selected metrics:", selectedMetrics)
+    console.log("[v0] COLORS array:", COLORS)
+
     if (viewMode === "week") {
       // For week view, aggregate by weeks and show current vs previous side by side
       const currentWeeksData = selectedMetrics.map((metricName) => {
@@ -266,6 +269,8 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
       return days
     }
   }, [selectedMetrics, metrics, viewMode])
+
+  console.log("[v0] Chart data:", chartData)
 
   return (
     <div className="space-y-4">
@@ -545,10 +550,21 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
               <ResponsiveContainer width="100%" height={500}>
                 <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <defs>
-                    {selectedMetrics.map((metricName) => {
-                      const metricIndex = metrics.findIndex((m) => m.name === metricName)
-                      const baseColor = COLORS[metricIndex % COLORS.length]
-                      return (
+                  {selectedMetrics.map((metricName) => {
+                    const metricIndex = metrics.findIndex((m) => m.name === metricName)
+                    const baseColor = COLORS[metricIndex % COLORS.length]
+
+                    console.log("[v0] Rendering metric:", metricName, "Index:", metricIndex, "Color:", baseColor)
+
+                    // Determine if this is an area-type metric or line-type
+                    const shouldShowAsArea =
+                      metricName.includes("GMV") ||
+                      metricName.includes("Revenue") ||
+                      metricName.includes("Items Sold") ||
+                      metricName.includes("Orders") ||
+                      metricName.includes("Impressions")
+
+                    return (
                         <linearGradient key={`gradient-${metricName}`} id={`gradient-${metricName}`} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={baseColor} stopOpacity={0.3}/>
                           <stop offset="95%" stopColor={baseColor} stopOpacity={0.05}/>
