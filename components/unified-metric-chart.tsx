@@ -191,9 +191,6 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
   const chartData = useMemo(() => {
     if (selectedMetrics.length === 0) return []
 
-    console.log("[v0] Selected metrics:", selectedMetrics)
-    console.log("[v0] COLORS array:", COLORS)
-
     if (viewMode === "week") {
       // For week view, aggregate by weeks and show current vs previous side by side
       const currentWeeksData = selectedMetrics.map((metricName) => {
@@ -270,8 +267,7 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
     }
   }, [selectedMetrics, metrics, viewMode])
 
-  console.log("[v0] Chart data:", chartData)
-  console.log("[v0] Chart data sample:", chartData[0])
+
 
   return (
     <div className="space-y-4">
@@ -555,8 +551,6 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
                     const metricIndex = metrics.findIndex((m) => m.name === metricName)
                     const baseColor = COLORS[metricIndex % COLORS.length]
 
-                    console.log("[v0] Rendering metric:", metricName, "Index:", metricIndex, "Color:", baseColor)
-
                     // Determine if this is an area-type metric or line-type
                     const shouldShowAsArea =
                       metricName.includes("GMV") ||
@@ -573,14 +567,14 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
                       )
                     })}
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
                   <XAxis
                     dataKey={viewMode === "week" ? "week" : "day"}
                     label={{ value: viewMode === "week" ? "Week" : "Day", position: "insideBottom", offset: -5 }}
-                    stroke="hsl(var(--foreground))"
+                    stroke="var(--color-foreground)"
                     fontSize={12}
                   />
-                  <YAxis stroke="hsl(var(--foreground))" fontSize={12} />
+                  <YAxis stroke="var(--color-foreground)" fontSize={12} />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload || payload.length === 0) return null
@@ -666,7 +660,7 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
                               stroke={baseColor}
                               strokeWidth={3}
                               fill={`url(#gradient-${metricName})`}
-                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "var(--color-background)" }}
                               activeDot={{ r: 6, strokeWidth: 2 }}
                             />
                             {showComparison && (
@@ -692,7 +686,7 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
                               name={`${metricName}_current`}
                               stroke={baseColor}
                               strokeWidth={3}
-                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "var(--color-background)" }}
                               activeDot={{ r: 6, strokeWidth: 2 }}
                             />
                             {showComparison && (

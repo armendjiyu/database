@@ -323,14 +323,14 @@ export function ForecastChart() {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
                 <XAxis 
                   dataKey="date" 
-                  stroke="hsl(var(--foreground))"
+                  stroke="var(--color-foreground)"
                   fontSize={11}
                 />
                 <YAxis 
-                  stroke="hsl(var(--foreground))"
+                  stroke="var(--color-foreground)"
                   fontSize={12}
                 />
                 <Tooltip
@@ -365,7 +365,7 @@ export function ForecastChart() {
                 {/* Reference line to separate historical from forecast */}
                 <ReferenceLine 
                   x={chartData[forecastData.historical.dates.length - 1]?.date} 
-                  stroke="hsl(var(--muted-foreground))" 
+                  stroke="var(--color-muted-foreground)" 
                   strokeDasharray="3 3"
                   label={{ value: "Forecast Start", position: "top", fontSize: 10 }}
                 />
@@ -398,7 +398,7 @@ export function ForecastChart() {
                   stroke="#10b981"
                   strokeWidth={3}
                   fill="url(#forecastGradient)"
-                  dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                  dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "var(--color-background)" }}
                   connectNulls={false}
                 />
               </ComposedChart>

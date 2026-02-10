@@ -67,7 +67,7 @@ const TotalLabel = (props: any) => {
     <text
       x={x + width / 2}
       y={y - 5}
-      fill="hsl(var(--foreground))"
+      fill="var(--color-foreground)"
       textAnchor="middle"
       fontSize={11}
       fontWeight={600}
@@ -245,14 +245,14 @@ export function ProductsHeatmap() {
             
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis 
                   dataKey="date" 
-                  stroke="hsl(var(--foreground))"
+                  stroke="var(--color-foreground)"
                   fontSize={12}
                 />
                 <YAxis 
-                  stroke="hsl(var(--foreground))"
+                  stroke="var(--color-foreground)"
                   fontSize={12}
                 />
                 <Tooltip content={<CustomTooltip selectedMetric={selectedMetric} />} />
