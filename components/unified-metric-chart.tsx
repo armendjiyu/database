@@ -20,18 +20,18 @@ interface UnifiedMetricChartProps {
 }
 
 const COLORS = [
-  "hsl(var(--chart-1))", // orange
-  "hsl(var(--chart-2))", // teal
-  "hsl(var(--chart-3))", // blue
-  "hsl(var(--chart-4))", // yellow
-  "hsl(var(--chart-5))", // red
-  "#3b82f6", // blue fallback
-  "#10b981", // green fallback
-  "#f59e0b", // amber fallback
-  "#8b5cf6", // purple fallback
-  "#ec4899", // pink fallback
-  "#06b6d4", // cyan fallback
-  "#f97316", // orange fallback
+  "#3b82f6", // blue
+  "#ef4444", // red
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#14b8a6", // teal
+  "#6366f1", // indigo
+  "#84cc16", // lime
+  "#a855f7", // violet
 ]
 
 function aggregateByWeek(
