@@ -12,11 +12,11 @@ export function MetricChart({ metric }: MetricChartProps) {
   const chartConfig = {
     value: {
       label: metric.name,
-      color: "hsl(var(--chart-1))",
+      color: "var(--color-chart-1)",
     },
     median: {
       label: "50th Percentile",
-      color: "hsl(var(--chart-3))",
+      color: "var(--color-chart-3)",
     },
   }
 
