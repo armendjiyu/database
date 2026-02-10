@@ -271,6 +271,7 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
   }, [selectedMetrics, metrics, viewMode])
 
   console.log("[v0] Chart data:", chartData)
+  console.log("[v0] Chart data sample:", chartData[0])
 
   return (
     <div className="space-y-4">
